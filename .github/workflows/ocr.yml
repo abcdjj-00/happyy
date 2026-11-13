@@ -12,12 +12,11 @@ jobs:
   run-ocr:
     runs-on: ubuntu-latest
     steps:
-      - name: 도구 설치 (yt-dlp, FFmpeg, Tesseract)
+      - name: 도구 설치 (yt-dlp 최신 업그레이드, FFmpeg, Tesseract)
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg tesseract-ocr tesseract-ocr-kor python3-pip
-          pip install yt-dlp
-
+          pip install --upgrade yt-dlp
       - name: 영상 다운로드 및 프레임 추출
         run: |
           yt-dlp -f "best[ext=mp4]" -o "video.mp4" "${{ github.event.inputs.video_url }}"
