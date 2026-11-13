@@ -1,0 +1,40 @@
+name: Mobile Video OCR
+
+# 모바일 앱에서 'Run workflow' 버튼을 누를 때 주소를 입력받음
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: '유튜브 링크 또는 영상 직링크(URL)'
+        required: true
+
+jobs:
+  run-ocr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 도구 설치 (yt-dlp, FFmpeg, Tesseract)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg tesseract-ocr tesseract-ocr-kor python3-pip
+          pip install yt-dlp
+
+      - name: 영상 다운로드 및 프레임 추출
+        run: |
+          yt-dlp -f "best[ext=mp4]" -o "video.mp4" "${{ github.event.inputs.video_url }}"
+          mkdir -p frames
+          # 3초마다 1장씩 이미지 추출 (속도 최적화)
+          ffmpeg -i video.mp4 -vf fps=0.33 frames/out_%04d.png
+
+      - name: 텍스트 추출 (한국어 + 영어)
+        run: |
+          for img in frames/*.png; do
+            tesseract "$img" stdout -l kor+eng --psm 6 >> raw_text.txt
+          done
+          # 연속으로 중복되는 똑같은 줄 간단 정리
+          uniq raw_text.txt > final_result.txt
+
+      - name: 결과 파일 저장
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocr-text-result
+          path: final_result.txt
